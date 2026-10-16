@@ -14,8 +14,8 @@ from unet.unet_dual_encoder_v3 import create_dual_encoder_v3
 from utils.utils import calculate_metric_percase
 from utils.visualization import save_global_visualization
 
-# --- 配置 ---
-SAVE_TOP_K = 3  # 每个 Case 只保存最具代表性的前3张切片
+
+SAVE_TOP_K = 3  
 
 def calculate_slice_global_mean(pred_slice, label_slice, num_classes=9):
     """计算单张切片的平均 Dice (忽略背景0)"""
@@ -49,14 +49,14 @@ def inference(model, test_loader, args):
     for i_batch, sampled_batch in enumerate(tqdm(test_loader, desc="Testing")):
         image, label, case_name = sampled_batch["image"], sampled_batch["label"], sampled_batch['case_name'][0]
         
-        # 移除 batch 维度 (Synapse 测试集单例 batch)
+        
         image = image.squeeze(0).cpu().detach().numpy()
         label = label.squeeze(0).cpu().detach().numpy()
         
         depth, h, w = image.shape
         prediction = np.zeros_like(label)
 
-        # --- 切片级推理过程 ---
+        
         for i in range(depth):
             device = torch.device('cpu' if (hasattr(args, 'force_cpu') and args.force_cpu) else ('cuda' if torch.cuda.is_available() else 'cpu'))
 
