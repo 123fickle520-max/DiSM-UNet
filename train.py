@@ -79,7 +79,7 @@ class DiceLoss(nn.Module):
 def trainer_synapse(args, model, snapshot_path):
     logging.info(f"Start Focal Loss + Dice Loss Training. Output path: {snapshot_path}")
 
-    # 1. 准备数据集
+    
     db_train = Synapse_dataset(base_dir=args.root_path, list_dir=args.list_dir, split="train",
                                transform=transforms.Compose(
                                    [RandomGenerator(output_size=[args.img_size, args.img_size])]))
@@ -126,7 +126,7 @@ def trainer_synapse(args, model, snapshot_path):
     focal_loss_fn = FocalLoss(gamma=2.0)
     dice_loss_fn = DiceLoss(args.num_classes)
 
-    # 4. 训练参数设定
+    
     writer = SummaryWriter(snapshot_path + '/log')
     iter_num = start_epoch * len(trainloader)
     max_epoch = args.max_epochs
@@ -136,7 +136,7 @@ def trainer_synapse(args, model, snapshot_path):
     iterator = tqdm(range(start_epoch, max_epoch), ncols=70)
     scaler = torch.amp.GradScaler('cuda') 
 
-    # 5. 正式训练循环
+   
     for epoch_num in iterator:
         model.train()
         epoch_loss = 0
@@ -150,26 +150,26 @@ def trainer_synapse(args, model, snapshot_path):
             with torch.amp.autocast('cuda'):
                 outputs = model(image_batch)
                 
-                # 计算 Focal Loss 和 Dice Loss
+                
                 loss_focal = focal_loss_fn(outputs, label_batch[:].long())
                 loss_dice = dice_loss_fn(outputs, label_batch, softmax=True)
                 
                 
                 loss = 0.5 * loss_focal + 0.5 * loss_dice
 
-            # 梯度回传
+           
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
 
-            # 学习率多项式衰减策略 
+            
             for param_group in optimizer.param_groups:
                 if 'initial_lr' in param_group:
                     param_group['lr'] = param_group['initial_lr'] * (1.0 - iter_num / max_iterations) ** 0.9
 
             iter_num = iter_num + 1
             
-            # 记录两个部分的学习率
+            
             writer.add_scalar('info/lr_dinov3', optimizer.param_groups[0]['lr'], iter_num)
             writer.add_scalar('info/lr_others', optimizer.param_groups[1]['lr'], iter_num)
             
@@ -218,8 +218,8 @@ if __name__ == "__main__":
                         format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
-    # 初始化模型
+    
     model = create_dual_encoder_v3(n_in=1, n_class=args.num_classes, img_size=args.img_size).cuda()
     
-    # 启动训练
+   
     trainer_synapse(args, model, args.output_dir)
